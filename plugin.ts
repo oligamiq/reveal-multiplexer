@@ -38,19 +38,26 @@ export class MultiplexerPlugin {
     }
 
     async init() {
+        console.log("Multiplexer plugin initialized");
         const { identifier, can_master } = this.options;
         const client = new Client(identifier, (message) => {
             // https://github.com/reveal/multiplex/blob/master/client.js
-            const { state, content } = message as MessageType;
+            console.log(message);
+            const { state } = message as MessageType;
             if (state) {
                 console.log("Received state", state);
                 this.deck.setState(state);
             }
         });
+        console.log("Connecting to multiplexer server");
         try {
             await client.connect();
+            console.log("Connected to multiplexer server");
         } catch (e) {
             console.error(e);
+
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+
             if (
                 (e as Error).message ===
                 "Identifier is invalid Or Master is not listening"
@@ -59,10 +66,10 @@ export class MultiplexerPlugin {
                     const master = new Master(identifier);
                     master.listen_new_user();
 
-                    const post = (evt: Event) => {
+                    const post = (_evt: Event) => {
                         const message: MessageType = {
                             state: this.deck.getState(),
-                            content: evt,
+                            // content: _evt,
                         };
                         master.send_message(message);
                     };

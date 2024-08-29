@@ -1,2 +1,2 @@
-import * as Reveal from "./reveal";
+import * as Reveal from "reveal.js";
 export default Reveal;

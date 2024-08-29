@@ -11,7 +11,32 @@ class Client {
         this.reader = reader;
     }
 
+    async check_server() {
+        let status: number | undefined = undefined;
+        try {
+            const response = await fetch(`${PreUrl}${this.identifier}/listen`, {
+                method: "POST",
+                body: "check number of user\0",
+                headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            });
+
+            status = response.status;
+
+            await response.body?.cancel();
+        } catch (_e) {}
+        if (status) {
+            if (status === 200) {
+                throw new Error(
+                    "Identifier is invalid Or Master is not listening"
+                );
+            }
+        }
+    }
+
     async connect() {
+        await this.check_server();
+
+        console.log(`Try Get User ID: ${PreUrl}${this.identifier}/listen`);
         const user_id_response = await fetch(
             `${PreUrl}${this.identifier}/listen`,
             {
@@ -19,14 +44,35 @@ class Client {
                 headers: { "Content-Type": "text/plain;charset=UTF-8" },
             }
         );
+        console.log(user_id_response);
         if (user_id_response.status === 400) {
             throw new Error("Identifier is invalid Or Master is not listening");
         }
+        // const user_id_reader = user_id_response.body
+        //     ?.pipeThrough(new TextDecoderStream())
+        //     .getReader();
+        // if (!user_id_reader) {
+        //     throw new Error("Reader is null");
+        // }
+        // const { value, done } = await user_id_reader.read();
+        // // console.log(user_id_value);
+        // if (done) {
+        //     throw new Error("Reader is done");
+        // }
+        // console.log(value);
+        // console.dir(value);
+        // const user_id_value_value = value;
+        // console.log(user_id_value_value);
         const user_id = await user_id_response.text();
+        // console.log(textDecoder.decode(user_id_value_value));
+
+        // const user_id = user_id_value_value;
+
+        console.log(`Get User ID: ${user_id}`);
+        console.log(user_id);
 
         this.user_id = user_id;
-
-        // console.log(`Get User ID: ${this.user_id}`);
+        console.log(`Get User ID: ${this.user_id}`);
 
         const property_normal: RequestInit = {
             method: "GET",
@@ -41,13 +87,12 @@ class Client {
             `${PreUrl}${this.identifier}/${user_id}`,
             property
         );
-        // console.log(`Connect to ${PreUrl}${this.identifier}/${user_id}`);
+        console.log(`Connect to ${PreUrl}${this.identifier}/${user_id}`);
         const reader = response.body?.getReader();
         if (response.status === 400) {
             throw new Error("User ID is invalid");
         }
         if (reader) {
-            const textDecoder = new TextDecoder();
             const { value, done } = await reader.read();
             if (done) {
                 throw new Error("Reader is done");
@@ -55,6 +100,7 @@ class Client {
             if (value) {
                 this.parse_message(textDecoder.decode(value));
             }
+            console.log("Connected");
             let cancel_resolve: (arg: undefined) => void;
             this.cancel_loop = () => {
                 cancel_resolve(undefined);
@@ -212,7 +258,7 @@ class Client {
                 allowHTTP1ForStreamingUpload: true,
                 duplex: "half",
             };
-            const response = await fetch(
+            await fetch(
                 `${PreUrl}${this.identifier}/${this.user_id}`,
                 property
             );

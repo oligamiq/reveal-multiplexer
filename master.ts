@@ -30,6 +30,8 @@ class Master {
         console.log("Send message:", message);
         const msg = JSON.stringify(message);
         const handles: Promise<void>[] = [];
+        console.log("users:", this.users);
+        console.log("new_users:", this.new_users);
         if (this.receive_server) {
             handles.push(this.receive_server.write(msg));
         }
@@ -70,7 +72,7 @@ class Master {
             }
             if (reader) {
                 while (true) {
-                    const { done, value } = await reader.read();
+                    const { done } = await reader.read();
                     if (done) {
                         break;
                     }
@@ -100,17 +102,21 @@ class Master {
         const msg = this.reveal_now_state
             ? JSON.stringify(this.reveal_now_state)
             : "accept\0";
-        const write_handle = writer.write(msg);
+        // const write_handle = await writer.write(msg);
+        await writer.write(msg);
+        console.log(`wait connect: ${PreUrl}${this.identifier}/${user_id}`);
         const response = await fetch(
             `${PreUrl}${this.identifier}/${user_id}`,
             property
         );
-        await write_handle;
+        console.log(`Accept new user ID: ${user_id}`);
+        // await write_handle;
         const reader = response.body?.getReader();
         if (reader) {
+            console.log(`Accept new user ID: ${user_id}`);
             const textDecoder = new TextDecoder();
             while (true) {
-                const { done, value } = await reader.read();
+                const { value } = await reader.read();
                 const value_str = textDecoder.decode(value);
                 if (value_str.includes("Start sending")) {
                     break;
@@ -237,7 +243,7 @@ class Master {
 
             const textDecoder = new TextDecoder();
             while (true) {
-                const { done, value } = await reader.read();
+                const { value } = await reader.read();
                 const value_str = textDecoder.decode(value);
                 console.info("Master:", value_str);
                 if (value_str.includes("Start sending")) {
