@@ -43,6 +43,7 @@ export class MultiplexerPlugin {
             // https://github.com/reveal/multiplex/blob/master/client.js
             const { state, content } = message as MessageType;
             if (state) {
+                console.log("Received state", state);
                 this.deck.setState(state);
             }
         });
@@ -63,6 +64,7 @@ export class MultiplexerPlugin {
                             state: this.deck.getState(),
                             content: evt,
                         };
+                        master.send_message(message);
                     };
 
                     window.addEventListener("load", post);
