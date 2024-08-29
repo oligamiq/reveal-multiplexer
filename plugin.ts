@@ -1,0 +1,94 @@
+// Ref https://github.com/joeskeen/reveal-monaco/blob/master/plugin.js
+
+import { Client } from "./client";
+import { Master } from "./master";
+import type Reveal from "./reveal";
+
+type OptionType = {
+    identifier: string;
+    can_master: (init_master: () => void) => void;
+};
+
+const defaultOptions: OptionType = {
+    identifier: "default-identifier",
+    can_master: (init_master: () => void) => {
+        init_master();
+    },
+};
+
+type MessageType = {
+    state: Reveal.RevealState;
+    content?: Event;
+};
+
+export class MultiplexerPlugin {
+    deck: Reveal.Api;
+    options: OptionType;
+
+    constructor(reveal: Reveal.Api) {
+        this.deck = reveal;
+        const revealOptions: OptionType =
+            // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+            ((this.deck.getConfig() as unknown as any).multiplexer ||
+                {}) as OptionType;
+        if (revealOptions.identifier == null) {
+            throw new Error("Identifier is required for multiplexer plugin");
+        }
+        this.options = { ...defaultOptions, ...revealOptions };
+    }
+
+    async init() {
+        const { identifier, can_master } = this.options;
+        const client = new Client(identifier, (message) => {
+            // https://github.com/reveal/multiplex/blob/master/client.js
+            const { state, content } = message as MessageType;
+            if (state) {
+                this.deck.setState(state);
+            }
+        });
+        try {
+            await client.connect();
+        } catch (e) {
+            console.error(e);
+            if (
+                (e as Error).message ===
+                "Identifier is invalid Or Master is not listening"
+            ) {
+                can_master(() => {
+                    const master = new Master(identifier);
+                    master.listen_new_user();
+
+                    const post = (evt: Event) => {
+                        const message: MessageType = {
+                            state: this.deck.getState(),
+                            content: evt,
+                        };
+                    };
+
+                    window.addEventListener("load", post);
+                    this.deck.on("slidechanged", post);
+                    this.deck.on("fragmentshown", post);
+                    this.deck.on("fragmenthidden", post);
+                    this.deck.on("overviewhidden", post);
+                    this.deck.on("overviewshown", post);
+                    this.deck.on("paused", post);
+                    this.deck.on("resumed", post);
+                    document.addEventListener("send", post); // broadcast custom events sent by other plugins
+                });
+            }
+        }
+    }
+}
+
+export const Plugin: Reveal.PluginFunction = () => {
+    return {
+        id: "reveal-multiplexer",
+
+        init: (reveal: Reveal.Api) => {
+            const plugin = new MultiplexerPlugin(reveal);
+            return plugin.init();
+        },
+    };
+};
+
+export default Plugin;
