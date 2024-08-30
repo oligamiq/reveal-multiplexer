@@ -46,7 +46,11 @@ export class MultiplexerPlugin {
             const { state } = message as MessageType;
             if (state) {
                 console.log("Received state", state);
-                this.deck.setState(state);
+                try {
+                    this.deck.setState(state);
+                } catch (e) {
+                    console.warn(e);
+                }
             }
         });
         console.log("Connecting to multiplexer server");
@@ -54,7 +58,7 @@ export class MultiplexerPlugin {
             await client.connect();
             console.log("Connected to multiplexer server");
         } catch (e) {
-            console.error(e);
+            console.warn(e);
 
             await new Promise((resolve) => setTimeout(resolve, 3000));
 

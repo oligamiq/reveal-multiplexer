@@ -48,25 +48,7 @@ class Client {
         if (user_id_response.status === 400) {
             throw new Error("Identifier is invalid Or Master is not listening");
         }
-        // const user_id_reader = user_id_response.body
-        //     ?.pipeThrough(new TextDecoderStream())
-        //     .getReader();
-        // if (!user_id_reader) {
-        //     throw new Error("Reader is null");
-        // }
-        // const { value, done } = await user_id_reader.read();
-        // // console.log(user_id_value);
-        // if (done) {
-        //     throw new Error("Reader is done");
-        // }
-        // console.log(value);
-        // console.dir(value);
-        // const user_id_value_value = value;
-        // console.log(user_id_value_value);
         const user_id = await user_id_response.text();
-        // console.log(textDecoder.decode(user_id_value_value));
-
-        // const user_id = user_id_value_value;
 
         console.log(`Get User ID: ${user_id}`);
         console.log(user_id);
@@ -74,21 +56,15 @@ class Client {
         this.user_id = user_id;
         console.log(`Get User ID: ${this.user_id}`);
 
-        const property_normal: RequestInit = {
+        console.log(`Try Connect to ${PreUrl}${this.identifier}/${user_id}`);
+        const response = await fetch(`${PreUrl}${this.identifier}/${user_id}`, {
             method: "GET",
             headers: { "Content-Type": "text/plain;charset=UTF-8" },
-        };
-        const property = {
-            ...property_normal,
-            allowHTTP1ForStreamingUpload: true,
-        };
-        console.log(`Try Connect to ${PreUrl}${this.identifier}/${user_id}`);
-        const response = await fetch(
-            `${PreUrl}${this.identifier}/${user_id}`,
-            property
-        );
+        });
         console.log(`Connect to ${PreUrl}${this.identifier}/${user_id}`);
-        const reader = response.body?.getReader();
+        const reader = response.body
+            ?.pipeThrough(new TextDecoderStream())
+            .getReader();
         if (response.status === 400) {
             throw new Error("User ID is invalid");
         }
@@ -98,7 +74,7 @@ class Client {
                 throw new Error("Reader is done");
             }
             if (value) {
-                this.parse_message(textDecoder.decode(value));
+                this.parse_message(value);
             }
             console.log("Connected");
             let cancel_resolve: (arg: undefined) => void;
@@ -123,7 +99,7 @@ class Client {
                                 break;
                             }
                             if (value) {
-                                this.parse_message(textDecoder.decode(value));
+                                this.parse_message(value);
                             }
                         }
                         reader.cancel();
@@ -134,7 +110,7 @@ class Client {
                         break;
                     }
                     if (value) {
-                        this.parse_message(textDecoder.decode(value));
+                        this.parse_message(value);
                     }
                 }
             })();
@@ -144,31 +120,27 @@ class Client {
     }
 
     async connect_new_server(server: string) {
-        // console.log(`Connect to ${server}`);
+        console.log(`Connect to ${server}`);
         if (!this.user_id) {
             throw new Error("User ID is null");
         }
-        const property_normal: RequestInit = {
+        const response = await fetch(server, {
             method: "GET",
             headers: { "Content-Type": "text/plain;charset=UTF-8" },
-        };
-        const property = {
-            ...property_normal,
-            allowHTTP1ForStreamingUpload: true,
-        };
-        const response = await fetch(server, property);
-        const reader = response.body?.getReader();
+        });
+        const reader = response.body
+            ?.pipeThrough(new TextDecoderStream())
+            .getReader();
         if (response.status === 400) {
             throw new Error("NewServer Url is invalid");
         }
         if (reader) {
-            const textDecoder = new TextDecoder();
             const { value, done } = await reader.read();
             if (done) {
                 throw new Error("Reader is done");
             }
             if (value) {
-                this.parse_message(textDecoder.decode(value));
+                this.parse_message(value);
             }
             this.cancel_loop?.();
 
@@ -194,7 +166,7 @@ class Client {
                                 break;
                             }
                             if (value) {
-                                this.parse_message(textDecoder.decode(value));
+                                this.parse_message(value);
                             }
                         }
                         reader.cancel();
@@ -205,7 +177,7 @@ class Client {
                         break;
                     }
                     if (value) {
-                        this.parse_message(textDecoder.decode(value));
+                        this.parse_message(value);
                     }
                 }
             })();
@@ -217,6 +189,7 @@ class Client {
     parse_message(message: string) {
         const msgs = message.split("\0");
         for (const msg of msgs) {
+            console.log(`Message: ${msg}`);
             if (msg === "") {
             } else if (msg === "accept") {
                 console.log("Accept");
