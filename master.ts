@@ -117,7 +117,7 @@ class Master {
         };
         console.log(`Can accept new user ID: ${user_id}`);
         const msg = this.reveal_now_state
-            ? JSON.stringify(this.reveal_now_state)
+            ? `${JSON.stringify(this.reveal_now_state)}\0`
             : "accept\0";
         // const write_handle = await writer.write(msg);
         console.log(`wait connect: ${PreUrl}${this.identifier}/${user_id}`);
