@@ -209,8 +209,7 @@ class Master {
         // console.log("Stand new.users:", this.new_users);
         // console.log("old users:", this.users);
         const number_of_user = this.users.length + this_new_users.length;
-        // const new_server_id = crypto.randomUUID();
-        const new_server_id = "new";
+        const new_server_id = crypto.randomUUID();
         const { readable, writable } = new TransformStream();
         const writer = writable.getWriter();
         const property_normal: RequestInit = {
