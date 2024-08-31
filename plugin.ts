@@ -60,9 +60,6 @@ export class MultiplexerPlugin {
         try {
             await client.connect();
             console.log("Connected to multiplexer server");
-
-            const alt_client = new P2PCFClient(identifier, client_func);
-            await alt_client.connect();
         } catch (e) {
             console.warn(e);
 
@@ -97,6 +94,10 @@ export class MultiplexerPlugin {
                     this.deck.on("resumed", post);
                     document.addEventListener("send", post); // broadcast custom events sent by other plugins
                 });
+            } else {
+                const alt_client = new P2PCFClient(identifier, client_func);
+                await alt_client.connect();
+                console.log("Connected to multiplexer alt server");
             }
         }
     }
