@@ -1,8 +1,10 @@
 // Ref https://github.com/joeskeen/reveal-monaco/blob/master/plugin.js
 
-import { Client } from "./client";
-import { Master } from "./master";
-import type Reveal from "./reveal";
+import { Client as PipingClient } from "./piping/client";
+import { Master as PipingMaster } from "./piping/master";
+import { Client as P2PCFClient } from "./p2pcf/client";
+import { Master as P2PCFMaster } from "./p2pcf/master";
+import type Reveal from "./piping/reveal";
 
 type OptionType = {
     identifier: string;
@@ -40,7 +42,7 @@ export class MultiplexerPlugin {
     async init() {
         console.log("Multiplexer plugin initialized");
         const { identifier, can_master } = this.options;
-        const client = new Client(identifier, (message) => {
+        const client_func = (message: unknown) => {
             // https://github.com/reveal/multiplex/blob/master/client.js
             console.log(message);
             const { state } = message as MessageType;
@@ -52,11 +54,15 @@ export class MultiplexerPlugin {
                     console.warn(e);
                 }
             }
-        });
+        };
+        const client = new PipingClient(identifier, client_func);
         console.log("Connecting to multiplexer server");
         try {
             await client.connect();
             console.log("Connected to multiplexer server");
+
+            const alt_client = new P2PCFClient(identifier, client_func);
+            await alt_client.connect();
         } catch (e) {
             console.warn(e);
 
@@ -67,8 +73,10 @@ export class MultiplexerPlugin {
                 "Identifier is invalid Or Master is not listening"
             ) {
                 can_master(() => {
-                    const master = new Master(identifier);
+                    const master = new PipingMaster(identifier);
                     master.listen_new_user();
+                    const alt_master = new P2PCFMaster(identifier);
+                    alt_master.listen_new_user();
 
                     const post = (_evt: Event) => {
                         const message: MessageType = {
@@ -76,6 +84,7 @@ export class MultiplexerPlugin {
                             // content: _evt,
                         };
                         master.send_message(message);
+                        alt_master.send_message(message);
                     };
 
                     window.addEventListener("load", post);
