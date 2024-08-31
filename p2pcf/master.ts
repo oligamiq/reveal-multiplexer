@@ -49,11 +49,9 @@ export class Master {
         this.reveal_now_state = message;
 
         const decoder = new TextEncoder();
-        const msg_str = `${JSON.stringify(message)}\0`;
+        const msg_str = JSON.stringify(message);
         const buffer = decoder.encode(msg_str);
 
-        const state = JSON.stringify(buffer);
-
-        this.p2pcf.broadcast(state);
+        this.p2pcf.broadcast(buffer);
     }
 }
